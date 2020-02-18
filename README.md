@@ -1,6 +1,6 @@
 # Gin搭建Blog API's （一）
 
-项目地址：https://github.com/EDDYCJY/go-gin-example
+项目地址：https://github.com/panda8z/go-gin-example
 
 ## 思考
 
@@ -49,22 +49,22 @@ go-gin-example/
 打开 `go.mod` 文件，新增 `replace` 配置项，如下：
 
 ```
-module github.com/EDDYCJY/go-gin-example
+module github.com/panda8z/go-gin-example
 
 go 1.13
 
 require (...)
 
 replace (
-        github.com/EDDYCJY/go-gin-example/pkg/setting => ~/go-application/go-gin-example/pkg/setting
-        github.com/EDDYCJY/go-gin-example/conf          => ~/go-application/go-gin-example/pkg/conf
-        github.com/EDDYCJY/go-gin-example/middleware  => ~/go-application/go-gin-example/middleware
-        github.com/EDDYCJY/go-gin-example/models       => ~/go-application/go-gin-example/models
-        github.com/EDDYCJY/go-gin-example/routers       => ~/go-application/go-gin-example/routers
+        github.com/panda8z/go-gin-example/pkg/setting => ~/go-application/go-gin-example/pkg/setting
+        github.com/panda8z/go-gin-example/conf          => ~/go-application/go-gin-example/pkg/conf
+        github.com/panda8z/go-gin-example/middleware  => ~/go-application/go-gin-example/middleware
+        github.com/panda8z/go-gin-example/models       => ~/go-application/go-gin-example/models
+        github.com/panda8z/go-gin-example/routers       => ~/go-application/go-gin-example/routers
 )
 ```
 
-可能你会不理解为什么要特意跑来加 `replace` 配置项，首先你要看到我们使用的是完整的外部模块引用路径（`github.com/EDDYCJY/go-gin-example/xxx`），而这个模块还没推送到远程，是没有办法下载下来的，因此需要用 `replace` 将其指定读取本地的模块路径，这样子就可以解决本地模块读取的问题。
+可能你会不理解为什么要特意跑来加 `replace` 配置项，首先你要看到我们使用的是完整的外部模块引用路径（`github.com/panda8z/go-gin-example/xxx`），而这个模块还没推送到远程，是没有办法下载下来的，因此需要用 `replace` 将其指定读取本地的模块路径，这样子就可以解决本地模块读取的问题。
 
 **注：后续每新增一个本地应用目录，你都需要主动去 go.mod 文件里新增一条 replace（我不会提醒你），如果你漏了，那么编译时会出现报错，找不到那个模块。**
 
@@ -307,7 +307,7 @@ import (
     "github.com/gin-gonic/gin"
     "github.com/unknwon/com"
 
-    "github.com/EDDYCJY/go-gin-example/pkg/setting"
+    "github.com/panda8z/go-gin-example/pkg/setting"
 )
 
 func GetPage(c *gin.Context) int {
@@ -347,7 +347,7 @@ import (
     "github.com/jinzhu/gorm"
     _ "github.com/jinzhu/gorm/dialects/mysql"
 
-    "github.com/EDDYCJY/go-gin-example/pkg/setting"
+    "github.com/panda8z/go-gin-example/pkg/setting"
 )
 
 var db *gorm.DB
@@ -418,7 +418,7 @@ import (
 
     "github.com/gin-gonic/gin"
 
-      "github.com/EDDYCJY/go-gin-example/pkg/setting"
+      "github.com/panda8z/go-gin-example/pkg/setting"
 )
 
 func main() {
@@ -575,7 +575,7 @@ package routers
 import (
     "github.com/gin-gonic/gin"
 
-    "github.com/EDDYCJY/go-gin-example/pkg/setting"
+    "github.com/panda8z/go-gin-example/pkg/setting"
 )
 
 func InitRouter() *gin.Engine {
@@ -606,8 +606,8 @@ import (
     "fmt"
     "net/http"
 
-    "github.com/EDDYCJY/go-gin-example/routers"
-    "github.com/EDDYCJY/go-gin-example/pkg/setting"
+    "github.com/panda8z/go-gin-example/routers"
+    "github.com/panda8z/go-gin-example/pkg/setting"
 )
 
 func main() {
@@ -656,7 +656,7 @@ go-gin-example/
 
 ### 本系列示例代码
 
-- [go-gin-example](https://github.com/EDDYCJY/go-gin-example)
+- [go-gin-example](https://github.com/panda8z/go-gin-example)
 
 ## 关于
 
