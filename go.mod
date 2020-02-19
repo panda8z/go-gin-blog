@@ -25,6 +25,6 @@ replace (
 	github.com/panda8z/go-gin-example/pkg/e => ./pkg/e
 	github.com/panda8z/go-gin-example/pkg/setting => ./pkg/setting
 	github.com/panda8z/go-gin-example/pkg/util => ./pkg/util
-	github.com/panda8z/go-gin-example/routers => ./routersa
+	github.com/panda8z/go-gin-example/routers => ./routers
 	github.com/panda8z/go-gin-example/runtime => ./runtime
 )
