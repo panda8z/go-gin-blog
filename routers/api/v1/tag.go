@@ -3,12 +3,12 @@ package v1
 import (
 	"net/http"
 
-	"github.com/Unknwon/com"
 	"github.com/gin-gonic/gin"
 	"github.com/panda8z/go-gin-example/models"
 	"github.com/panda8z/go-gin-example/pkg/e"
 	"github.com/panda8z/go-gin-example/pkg/setting"
 	"github.com/panda8z/go-gin-example/pkg/util"
+	"github.com/unknwon/com"
 )
 
 // GetTags 获取多个文章标签
@@ -40,14 +40,14 @@ func GetTags(c *gin.Context) {
 	})
 }
 
-//新增文章标签
+// AddTag 新增文章标签
 func AddTag(c *gin.Context) {
 }
 
-//修改文章标签
+// EditTag 修改文章标签
 func EditTag(c *gin.Context) {
 }
 
-//删除文章标签
+// DeleteTag 删除文章标签
 func DeleteTag(c *gin.Context) {
 }

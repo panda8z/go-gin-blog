@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/EDDYCJY/go-gin-example/routers"
+	"github.com/panda8z/go-gin-example/routers"
 	"github.com/panda8z/go-gin-example/pkg/setting"
 )
 
