@@ -1185,6 +1185,602 @@ func EditTag(id int, data interface {}) bool {
 
 
 
+# Gin搭建Blog API's （三）
+
+## 涉及知识点
+
+- [Gin](https://github.com/gin-gonic/gin)：Golang 的一个微框架，性能极佳。
+- [beego-validation](https://github.com/astaxie/beego/tree/master/validation)：本节采用的 beego 的表单验证库，[中文文档](https://beego.me/docs/mvc/controller/validation.md)。
+- [gorm](https://github.com/jinzhu/gorm)，对开发人员友好的 ORM 框架，[英文文档](http://gorm.io/docs/)
+- [com](https://github.com/Unknwon/com)，一个小而美的工具包。
+
+## 本文目标
+
+- 完成博客的文章类接口定义和编写
+
+## 定义接口
+
+本节编写文章的逻辑，我们定义一下接口吧！
+
+- 获取文章列表：GET("/articles”)
+- 获取指定文章：POST("/articles/:id”)
+- 新建文章：POST("/articles”)
+- 更新指定文章：PUT("/articles/:id”)
+- 删除指定文章：DELETE("/articles/:id”)
+
+## 编写路由逻辑
+
+在`routers`的 v1 版本下，新建`article.go`文件，写入内容：
+
+```go
+package v1
+
+import (
+    "github.com/gin-gonic/gin"
+)
+
+//获取单个文章
+func GetArticle(c *gin.Context) {
+}
+
+//获取多个文章
+func GetArticles(c *gin.Context) {
+}
+
+//新增文章
+func AddArticle(c *gin.Context) {
+}
+
+//修改文章
+func EditArticle(c *gin.Context) {
+}
+
+//删除文章
+func DeleteArticle(c *gin.Context) {
+}
+```
+
+我们打开`routers`下的`router.go`文件，修改文件内容为：
+
+```go
+package routers
+
+import (
+    "github.com/gin-gonic/gin"
+
+    "github.com/EDDYCJY/go-gin-example/routers/api/v1"
+    "github.com/EDDYCJY/go-gin-example/pkg/setting"
+)
+
+func InitRouter() *gin.Engine {
+    ...
+    apiv1 := r.Group("/api/v1")
+    {
+        ...
+        //获取文章列表
+        apiv1.GET("/articles", v1.GetArticles)
+        //获取指定文章
+        apiv1.GET("/articles/:id", v1.GetArticle)
+        //新建文章
+        apiv1.POST("/articles", v1.AddArticle)
+        //更新指定文章
+        apiv1.PUT("/articles/:id", v1.EditArticle)
+        //删除指定文章
+        apiv1.DELETE("/articles/:id", v1.DeleteArticle)
+    }
+
+    return r
+}
+```
+
+当前目录结构：
+
+```
+go-gin-example/
+├── conf
+│   └── app.ini
+├── main.go
+├── middleware
+├── models
+│   ├── models.go
+│   └── tag.go
+├── pkg
+│   ├── e
+│   │   ├── code.go
+│   │   └── msg.go
+│   ├── setting
+│   │   └── setting.go
+│   └── util
+│       └── pagination.go
+├── routers
+│   ├── api
+│   │   └── v1
+│   │       ├── article.go
+│   │       └── tag.go
+│   └── router.go
+├── runtime
+```
+
+在基础的路由规则配置结束后，我们**开始编写我们的接口**吧！
+
+------
+
+\##编写 models 逻辑 创建`models`目录下的`article.go`，写入文件内容：
+
+```go
+package models
+
+import (
+    "github.com/jinzhu/gorm"
+
+    "time"
+)
+
+type Article struct {
+    Model
+
+    TagID int `json:"tag_id" gorm:"index"`
+    Tag   Tag `json:"tag"`
+
+    Title string `json:"title"`
+    Desc string `json:"desc"`
+    Content string `json:"content"`
+    CreatedBy string `json:"created_by"`
+    ModifiedBy string `json:"modified_by"`
+    State int `json:"state"`
+}
+
+
+func (article *Article) BeforeCreate(scope *gorm.Scope) error {
+    scope.SetColumn("CreatedOn", time.Now().Unix())
+
+    return nil
+}
+
+func (article *Article) BeforeUpdate(scope *gorm.Scope) error {
+    scope.SetColumn("ModifiedOn", time.Now().Unix())
+
+    return nil
+}
+```
+
+我们创建了一个`Article struct {}`，与`Tag`不同的是，`Article`多了几项，如下：
+
+1. `gorm:index`，用于声明这个字段为索引，如果你使用了自动迁移功能则会有所影响，在不使用则无影响
+2. `Tag`字段，实际是一个嵌套的`struct`，它利用`TagID`与`Tag`模型相互关联，在执行查询的时候，能够达到`Article`、`Tag`关联查询的功能
+3. `time.Now().Unix()` 返回当前的时间戳
+
+接下来，请确保已对上一章节的内容通读且了解，由于逻辑偏差不会太远，我们本节直接编写这五个接口
+
+------
+
+打开`models`目录下的`article.go`，修改文件内容：
+
+```go
+package models
+
+import (
+    "time"
+
+    "github.com/jinzhu/gorm"
+)
+
+type Article struct {
+    Model
+
+    TagID int `json:"tag_id" gorm:"index"`
+    Tag   Tag `json:"tag"`
+
+    Title string `json:"title"`
+    Desc string `json:"desc"`
+    Content string `json:"content"`
+    CreatedBy string `json:"created_by"`
+    ModifiedBy string `json:"modified_by"`
+    State int `json:"state"`
+}
+
+
+func ExistArticleByID(id int) bool {
+    var article Article
+    db.Select("id").Where("id = ?", id).First(&article)
+
+    if article.ID > 0 {
+        return true
+    }
+
+    return false
+}
+
+func GetArticleTotal(maps interface {}) (count int){
+    db.Model(&Article{}).Where(maps).Count(&count)
+
+    return
+}
+
+func GetArticles(pageNum int, pageSize int, maps interface {}) (articles []Article) {
+    db.Preload("Tag").Where(maps).Offset(pageNum).Limit(pageSize).Find(&articles)
+
+    return
+}
+
+func GetArticle(id int) (article Article) {
+    db.Where("id = ?", id).First(&article)
+    db.Model(&article).Related(&article.Tag)
+
+    return
+}
+
+func EditArticle(id int, data interface {}) bool {
+    db.Model(&Article{}).Where("id = ?", id).Updates(data)
+
+    return true
+}
+
+func AddArticle(data map[string]interface {}) bool {
+    db.Create(&Article {
+        TagID : data["tag_id"].(int),
+        Title : data["title"].(string),
+        Desc : data["desc"].(string),
+        Content : data["content"].(string),
+        CreatedBy : data["created_by"].(string),
+        State : data["state"].(int),
+    })
+
+    return true
+}
+
+func DeleteArticle(id int) bool {
+    db.Where("id = ?", id).Delete(Article{})
+
+    return true
+}
+
+func (article *Article) BeforeCreate(scope *gorm.Scope) error {
+    scope.SetColumn("CreatedOn", time.Now().Unix())
+
+    return nil
+}
+
+func (article *Article) BeforeUpdate(scope *gorm.Scope) error {
+    scope.SetColumn("ModifiedOn", time.Now().Unix())
+
+    return nil
+}
+```
+
+在这里，我们拿出三点不同来讲，如下：
+
+**1、 我们的`Article`是如何关联到`Tag`？**
+
+```go
+func GetArticle(id int) (article Article) {
+    db.Where("id = ?", id).First(&article)
+    db.Model(&article).Related(&article.Tag)
+
+    return
+}
+```
+
+能够达到关联，首先是`gorm`本身做了大量的约定俗成
+
+- `Article`有一个结构体成员是`TagID`，就是外键。`gorm`会通过类名+ID 的方式去找到这两个类之间的关联关系
+- `Article`有一个结构体成员是`Tag`，就是我们嵌套在`Article`里的`Tag`结构体，我们可以通过`Related`进行关联查询
+
+**2、 `Preload`是什么东西，为什么查询可以得出每一项的关联`Tag`？**
+
+```go
+func GetArticles(pageNum int, pageSize int, maps interface {}) (articles []Article) {
+    db.Preload("Tag").Where(maps).Offset(pageNum).Limit(pageSize).Find(&articles)
+
+    return
+}
+```
+
+`Preload`就是一个预加载器，它会执行两条 SQL，分别是`SELECT * FROM blog_articles;`和`SELECT * FROM blog_tag WHERE id IN (1,2,3,4);`，那么在查询出结构后，`gorm`内部处理对应的映射逻辑，将其填充到`Article`的`Tag`中，会特别方便，并且避免了循环查询
+
+那么有没有别的办法呢，大致是两种
+
+- `gorm`的`Join`
+- 循环`Related`
+
+综合之下，还是`Preload`更好，如果你有更优的方案，欢迎说一下 :)
+
+**3、 `v.(I)` 是什么？**
+
+`v`表示一个接口值，`I`表示接口类型。这个实际就是 Golang 中的**类型断言**，用于判断一个接口值的实际类型是否为某个类型，或一个非接口值的类型是否实现了某个接口类型
+
+------
+
+打开`routers`目录下 v1 版本的`article.go`文件，修改文件内容：
+
+```go
+package v1
+
+import (
+    "net/http"
+    "log"
+
+    "github.com/gin-gonic/gin"
+    "github.com/astaxie/beego/validation"
+    "github.com/unknwon/com"
+
+    "github.com/EDDYCJY/go-gin-example/models"
+    "github.com/EDDYCJY/go-gin-example/pkg/e"
+    "github.com/EDDYCJY/go-gin-example/pkg/setting"
+    "github.com/EDDYCJY/go-gin-example/pkg/util"
+)
+
+//获取单个文章
+func GetArticle(c *gin.Context) {
+    id := com.StrTo(c.Param("id")).MustInt()
+
+    valid := validation.Validation{}
+    valid.Min(id, 1, "id").Message("ID必须大于0")
+
+    code := e.INVALID_PARAMS
+    var data interface {}
+    if ! valid.HasErrors() {
+        if models.ExistArticleByID(id) {
+            data = models.GetArticle(id)
+            code = e.SUCCESS
+        } else {
+            code = e.ERROR_NOT_EXIST_ARTICLE
+        }
+    } else {
+        for _, err := range valid.Errors {
+            log.Printf("err.key: %s, err.message: %s", err.Key, err.Message)
+        }
+    }
+
+    c.JSON(http.StatusOK, gin.H{
+        "code" : code,
+        "msg" : e.GetMsg(code),
+        "data" : data,
+    })
+}
+
+//获取多个文章
+func GetArticles(c *gin.Context) {
+    data := make(map[string]interface{})
+    maps := make(map[string]interface{})
+    valid := validation.Validation{}
+
+    var state int = -1
+    if arg := c.Query("state"); arg != "" {
+        state = com.StrTo(arg).MustInt()
+        maps["state"] = state
+
+        valid.Range(state, 0, 1, "state").Message("状态只允许0或1")
+    }
+
+    var tagId int = -1
+    if arg := c.Query("tag_id"); arg != "" {
+        tagId = com.StrTo(arg).MustInt()
+        maps["tag_id"] = tagId
+
+        valid.Min(tagId, 1, "tag_id").Message("标签ID必须大于0")
+    }
+
+    code := e.INVALID_PARAMS
+    if ! valid.HasErrors() {
+        code = e.SUCCESS
+
+        data["lists"] = models.GetArticles(util.GetPage(c), setting.PageSize, maps)
+        data["total"] = models.GetArticleTotal(maps)
+
+    } else {
+        for _, err := range valid.Errors {
+            log.Printf("err.key: %s, err.message: %s", err.Key, err.Message)
+        }
+    }
+
+    c.JSON(http.StatusOK, gin.H{
+        "code" : code,
+        "msg" : e.GetMsg(code),
+        "data" : data,
+    })
+}
+
+//新增文章
+func AddArticle(c *gin.Context) {
+    tagId := com.StrTo(c.Query("tag_id")).MustInt()
+    title := c.Query("title")
+    desc := c.Query("desc")
+    content := c.Query("content")
+    createdBy := c.Query("created_by")
+    state := com.StrTo(c.DefaultQuery("state", "0")).MustInt()
+
+    valid := validation.Validation{}
+    valid.Min(tagId, 1, "tag_id").Message("标签ID必须大于0")
+    valid.Required(title, "title").Message("标题不能为空")
+    valid.Required(desc, "desc").Message("简述不能为空")
+    valid.Required(content, "content").Message("内容不能为空")
+    valid.Required(createdBy, "created_by").Message("创建人不能为空")
+    valid.Range(state, 0, 1, "state").Message("状态只允许0或1")
+
+    code := e.INVALID_PARAMS
+    if ! valid.HasErrors() {
+        if models.ExistTagByID(tagId) {
+            data := make(map[string]interface {})
+            data["tag_id"] = tagId
+            data["title"] = title
+            data["desc"] = desc
+            data["content"] = content
+            data["created_by"] = createdBy
+            data["state"] = state
+
+            models.AddArticle(data)
+            code = e.SUCCESS
+        } else {
+            code = e.ERROR_NOT_EXIST_TAG
+        }
+    } else {
+        for _, err := range valid.Errors {
+            log.Printf("err.key: %s, err.message: %s", err.Key, err.Message)
+        }
+    }
+
+    c.JSON(http.StatusOK, gin.H{
+        "code" : code,
+        "msg" : e.GetMsg(code),
+        "data" : make(map[string]interface{}),
+    })
+}
+
+//修改文章
+func EditArticle(c *gin.Context) {
+    valid := validation.Validation{}
+
+    id := com.StrTo(c.Param("id")).MustInt()
+    tagId := com.StrTo(c.Query("tag_id")).MustInt()
+    title := c.Query("title")
+    desc := c.Query("desc")
+    content := c.Query("content")
+    modifiedBy := c.Query("modified_by")
+
+    var state int = -1
+    if arg := c.Query("state"); arg != "" {
+        state = com.StrTo(arg).MustInt()
+        valid.Range(state, 0, 1, "state").Message("状态只允许0或1")
+    }
+
+    valid.Min(id, 1, "id").Message("ID必须大于0")
+    valid.MaxSize(title, 100, "title").Message("标题最长为100字符")
+    valid.MaxSize(desc, 255, "desc").Message("简述最长为255字符")
+    valid.MaxSize(content, 65535, "content").Message("内容最长为65535字符")
+    valid.Required(modifiedBy, "modified_by").Message("修改人不能为空")
+    valid.MaxSize(modifiedBy, 100, "modified_by").Message("修改人最长为100字符")
+
+    code := e.INVALID_PARAMS
+    if ! valid.HasErrors() {
+        if models.ExistArticleByID(id) {
+            if models.ExistTagByID(tagId) {
+                data := make(map[string]interface {})
+                if tagId > 0 {
+                    data["tag_id"] = tagId
+                }
+                if title != "" {
+                    data["title"] = title
+                }
+                if desc != "" {
+                    data["desc"] = desc
+                }
+                if content != "" {
+                    data["content"] = content
+                }
+
+                data["modified_by"] = modifiedBy
+
+                models.EditArticle(id, data)
+                code = e.SUCCESS
+            } else {
+                code = e.ERROR_NOT_EXIST_TAG
+            }
+        } else {
+            code = e.ERROR_NOT_EXIST_ARTICLE
+        }
+    } else {
+        for _, err := range valid.Errors {
+            log.Printf("err.key: %s, err.message: %s", err.Key, err.Message)
+        }
+    }
+
+    c.JSON(http.StatusOK, gin.H{
+        "code" : code,
+        "msg" : e.GetMsg(code),
+        "data" : make(map[string]string),
+    })
+}
+
+//删除文章
+func DeleteArticle(c *gin.Context) {
+    id := com.StrTo(c.Param("id")).MustInt()
+
+    valid := validation.Validation{}
+    valid.Min(id, 1, "id").Message("ID必须大于0")
+
+    code := e.INVALID_PARAMS
+    if ! valid.HasErrors() {
+        if models.ExistArticleByID(id) {
+            models.DeleteArticle(id)
+            code = e.SUCCESS
+        } else {
+            code = e.ERROR_NOT_EXIST_ARTICLE
+        }
+    } else {
+        for _, err := range valid.Errors {
+            log.Printf("err.key: %s, err.message: %s", err.Key, err.Message)
+        }
+    }
+
+    c.JSON(http.StatusOK, gin.H{
+        "code" : code,
+        "msg" : e.GetMsg(code),
+        "data" : make(map[string]string),
+    })
+}
+```
+
+当前目录结构：
+
+```
+go-gin-example/
+├── conf
+│   └── app.ini
+├── main.go
+├── middleware
+├── models
+│   ├── article.go
+│   ├── models.go
+│   └── tag.go
+├── pkg
+│   ├── e
+│   │   ├── code.go
+│   │   └── msg.go
+│   ├── setting
+│   │   └── setting.go
+│   └── util
+│       └── pagination.go
+├── routers
+│   ├── api
+│   │   └── v1
+│   │       ├── article.go
+│   │       └── tag.go
+│   └── router.go
+├── runtime
+```
+
+## 验证功能
+
+我们重启服务，执行`go run main.go`，检查控制台输出结果
+
+```
+$ go run main.go
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:   export GIN_MODE=release
+ - using code:  gin.SetMode(gin.ReleaseMode)
+
+[GIN-debug] GET    /api/v1/tags              --> gin-blog/routers/api/v1.GetTags (3 handlers)
+[GIN-debug] POST   /api/v1/tags              --> gin-blog/routers/api/v1.AddTag (3 handlers)
+[GIN-debug] PUT    /api/v1/tags/:id          --> gin-blog/routers/api/v1.EditTag (3 handlers)
+[GIN-debug] DELETE /api/v1/tags/:id          --> gin-blog/routers/api/v1.DeleteTag (3 handlers)
+[GIN-debug] GET    /api/v1/articles          --> gin-blog/routers/api/v1.GetArticles (3 handlers)
+[GIN-debug] GET    /api/v1/articles/:id      --> gin-blog/routers/api/v1.GetArticle (3 handlers)
+[GIN-debug] POST   /api/v1/articles          --> gin-blog/routers/api/v1.AddArticle (3 handlers)
+[GIN-debug] PUT    /api/v1/articles/:id      --> gin-blog/routers/api/v1.EditArticle (3 handlers)
+[GIN-debug] DELETE /api/v1/articles/:id      --> gin-blog/routers/api/v1.DeleteArticle (3 handlers)
+```
+
+使用`Postman`检验接口是否正常，在这里大家可以选用合适的参数传递方式，此处为了方便展示我选用了 GET/Param 传参的方式，而后期会改为 POST。
+
+- POST：http://127.0.0.1:8000/api/v1/articles?tag_id=1&title=test1&desc=test-desc&content=test-content&created_by=test-created&state=1
+- GET：http://127.0.0.1:8000/api/v1/articles
+- GET：http://127.0.0.1:8000/api/v1/articles/1
+- PUT：http://127.0.0.1:8000/api/v1/articles/1?tag_id=1&title=test-edit1&desc=test-desc-edit&content=test-content-edit&modified_by=test-created-edit&state=0
+- DELETE：http://127.0.0.1:8000/api/v1/articles/1
+
+至此，我们的 API’s 编写就到这里，下一节我们将介绍另外的一些技巧！
+
 # 第一阶段完成
 
 ```bash
@@ -1208,3 +1804,422 @@ func EditTag(id int, data interface {}) bool {
 [GIN] 2020/02/18 - 17:54:38 | 200 |   13.093875ms |       127.0.0.1 | GET      /api/v1/tags
 ```
 
+#
+
+# 使用 JWT 进行身份校验
+
+## 涉及知识点
+
+- JWT
+
+## 本文目标
+
+在前面几节中，我们已经基本的完成了 API’s 的编写，但是，还存在一些非常严重的问题，例如，我们现在的 API 是可以随意调用的，这显然还不安全全，在本文中我们通过 [jwt-go](https://github.com/dgrijalva/jwt-go) （[GoDoc](https://godoc.org/github.com/dgrijalva/jwt-go)）的方式来简单解决这个问题。
+
+## 下载依赖包
+
+首先，我们下载 jwt-go 的依赖包，如下：
+
+```
+go get -u github.com/dgrijalva/jwt-go
+```
+
+## 编写 jwt 工具包
+
+我们需要编写一个`jwt`的工具包，我们在`pkg`下的`util`目录新建`jwt.go`，写入文件内容：
+
+```go
+package util
+
+import (
+	"time"
+
+	jwt "github.com/dgrijalva/jwt-go"
+
+	"github.com/EDDYCJY/go-gin-example/pkg/setting"
+)
+
+var jwtSecret = []byte(setting.JwtSecret)
+
+type Claims struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+	jwt.StandardClaims
+}
+
+func GenerateToken(username, password string) (string, error) {
+	nowTime := time.Now()
+	expireTime := nowTime.Add(3 * time.Hour)
+
+	claims := Claims{
+		username,
+		password,
+		jwt.StandardClaims {
+			ExpiresAt : expireTime.Unix(),
+			Issuer : "gin-blog",
+		},
+	}
+
+	tokenClaims := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	token, err := tokenClaims.SignedString(jwtSecret)
+
+	return token, err
+}
+
+func ParseToken(token string) (*Claims, error) {
+	tokenClaims, err := jwt.ParseWithClaims(token, &Claims{}, func(token *jwt.Token) (interface{}, error) {
+		return jwtSecret, nil
+	})
+
+	if tokenClaims != nil {
+		if claims, ok := tokenClaims.Claims.(*Claims); ok && tokenClaims.Valid {
+			return claims, nil
+		}
+	}
+
+	return nil, err
+}
+```
+
+在这个工具包，我们涉及到
+
+- `NewWithClaims(method SigningMethod, claims Claims)`，`method`对应着`SigningMethodHMAC struct{}`，其包含`SigningMethodHS256`、`SigningMethodHS384`、`SigningMethodHS512`三种`crypto.Hash`方案
+- `func (t *Token) SignedString(key interface{})` 该方法内部生成签名字符串，再用于获取完整、已签名的`token`
+- `func (p *Parser) ParseWithClaims` 用于解析鉴权的声明，[方法内部](https://gowalker.org/github.com/dgrijalva/jwt-go#Parser_ParseWithClaims)主要是具体的解码和校验的过程，最终返回`*Token`
+- `func (m MapClaims) Valid()` 验证基于时间的声明`exp, iat, nbf`，注意如果没有任何声明在令牌中，仍然会被认为是有效的。并且对于时区偏差没有计算方法
+
+有了`jwt`工具包，接下来我们要编写要用于`Gin`的中间件，我们在`middleware`下新建`jwt`目录，新建`jwt.go`文件，写入内容：
+
+```go
+package jwt
+
+import (
+	"time"
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+
+	"github.com/EDDYCJY/go-gin-example/pkg/util"
+	"github.com/EDDYCJY/go-gin-example/pkg/e"
+)
+
+func JWT() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var code int
+		var data interface{}
+
+		code = e.SUCCESS
+		token := c.Query("token")
+		if token == "" {
+			code = e.INVALID_PARAMS
+		} else {
+			claims, err := util.ParseToken(token)
+			if err != nil {
+				code = e.ERROR_AUTH_CHECK_TOKEN_FAIL
+			} else if time.Now().Unix() > claims.ExpiresAt {
+				code = e.ERROR_AUTH_CHECK_TOKEN_TIMEOUT
+			}
+		}
+
+		if code != e.SUCCESS {
+			c.JSON(http.StatusUnauthorized, gin.H{
+		        "code" : code,
+		        "msg" : e.GetMsg(code),
+		        "data" : data,
+		    })
+
+		    c.Abort()
+		    return
+		}
+
+		c.Next()
+	}
+}
+```
+
+## 如何获取`Token`
+
+那么我们如何调用它呢，我们还要获取`Token`呢？
+
+1、 我们要新增一个获取`Token`的 API
+
+在`models`下新建`auth.go`文件，写入内容：
+
+```go
+package models
+
+type Auth struct {
+	ID int `gorm:"primary_key" json:"id"`
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+func CheckAuth(username, password string) bool {
+	var auth Auth
+	db.Select("id").Where(Auth{Username : username, Password : password}).First(&auth)
+	if auth.ID > 0 {
+		return true
+	}
+
+	return false
+}
+```
+
+在`routers`下的`api`目录新建`auth.go`文件，写入内容：
+
+```go
+package api
+
+import (
+	"log"
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+	"github.com/astaxie/beego/validation"
+
+	"github.com/EDDYCJY/go-gin-example/pkg/e"
+	"github.com/EDDYCJY/go-gin-example/pkg/util"
+	"github.com/EDDYCJY/go-gin-example/models"
+)
+
+type auth struct {
+	Username string `valid:"Required; MaxSize(50)"`
+	Password string `valid:"Required; MaxSize(50)"`
+}
+
+func GetAuth(c *gin.Context) {
+	username := c.Query("username")
+	password := c.Query("password")
+
+	valid := validation.Validation{}
+	a := auth{Username: username, Password: password}
+	ok, _ := valid.Valid(&a)
+
+	data := make(map[string]interface{})
+	code := e.INVALID_PARAMS
+	if ok {
+		isExist := models.CheckAuth(username, password)
+		if isExist {
+			token, err := util.GenerateToken(username, password)
+			if err != nil {
+				code = e.ERROR_AUTH_TOKEN
+			} else {
+				data["token"] = token
+
+				code = e.SUCCESS
+			}
+
+		} else {
+			code = e.ERROR_AUTH
+		}
+	} else {
+		for _, err := range valid.Errors {
+            log.Println(err.Key, err.Message)
+        }
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+        "code" : code,
+        "msg" : e.GetMsg(code),
+        "data" : data,
+    })
+}
+```
+
+我们打开`routers`目录下的`router.go`文件，修改文件内容（新增获取 token 的方法）：
+
+```go
+package routers
+
+import (
+    "github.com/gin-gonic/gin"
+
+    "github.com/EDDYCJY/go-gin-example/routers/api"
+    "github.com/EDDYCJY/go-gin-example/routers/api/v1"
+    "github.com/EDDYCJY/go-gin-example/pkg/setting"
+)
+
+func InitRouter() *gin.Engine {
+    r := gin.New()
+
+    r.Use(gin.Logger())
+
+    r.Use(gin.Recovery())
+
+    gin.SetMode(setting.RunMode)
+
+    r.GET("/auth", api.GetAuth)
+
+    apiv1 := r.Group("/api/v1")
+    {
+        ...
+    }
+
+    return r
+}
+```
+
+## 验证`Token`
+
+获取`token`的 API 方法就到这里啦，让我们来测试下是否可以正常使用吧！
+
+重启服务后，用`GET`方式访问`http://127.0.0.1:8000/auth?username=test&password=test123456`，查看返回值是否正确
+
+```json
+{
+  "code": 200,
+  "data": {
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InRlc3QiLCJwYXNzd29yZCI6InRlc3QxMjM0NTYiLCJleHAiOjE1MTg3MjAwMzcsImlzcyI6Imdpbi1ibG9nIn0.-kK0V9E06qTHOzupQM_gHXAGDB3EJtJS4H5TTCyWwW8"
+  },
+  "msg": "ok"
+}
+```
+
+我们有了`token`的 API，也调用成功了
+
+## 将中间件接入`Gin`
+
+2、 接下来我们将中间件接入到`Gin`的访问流程中
+
+我们打开`routers`目录下的`router.go`文件，修改文件内容（新增引用包和中间件引用）
+
+```go
+package routers
+
+import (
+    "github.com/gin-gonic/gin"
+
+    "github.com/EDDYCJY/go-gin-example/routers/api"
+    "github.com/EDDYCJY/go-gin-example/routers/api/v1"
+    "github.com/EDDYCJY/go-gin-example/pkg/setting"
+    "github.com/EDDYCJY/go-gin-example/middleware/jwt"
+)
+
+func InitRouter() *gin.Engine {
+    r := gin.New()
+
+    r.Use(gin.Logger())
+
+    r.Use(gin.Recovery())
+
+    gin.SetMode(setting.RunMode)
+
+    r.GET("/auth", api.GetAuth)
+
+    apiv1 := r.Group("/api/v1")
+    apiv1.Use(jwt.JWT())
+    {
+        ...
+    }
+
+    return r
+}
+```
+
+当前目录结构：
+
+```
+go-gin-example/
+├── conf
+│   └── app.ini
+├── main.go
+├── middleware
+│   └── jwt
+│       └── jwt.go
+├── models
+│   ├── article.go
+│   ├── auth.go
+│   ├── models.go
+│   └── tag.go
+├── pkg
+│   ├── e
+│   │   ├── code.go
+│   │   └── msg.go
+│   ├── setting
+│   │   └── setting.go
+│   └── util
+│       ├── jwt.go
+│       └── pagination.go
+├── routers
+│   ├── api
+│   │   ├── auth.go
+│   │   └── v1
+│   │       ├── article.go
+│   │       └── tag.go
+│   └── router.go
+├── runtime
+```
+
+到这里，我们的`JWT`编写就完成啦！
+
+## 验证功能
+
+我们来测试一下，再次访问
+
+- http://127.0.0.1:8000/api/v1/articles
+- http://127.0.0.1:8000/api/v1/articles?token=23131
+
+正确的反馈应该是
+
+```json
+{
+  "code": 400,
+  "data": null,
+  "msg": "请求参数错误"
+}
+
+{
+  "code": 20001,
+  "data": null,
+  "msg": "Token鉴权失败"
+}
+```
+
+我们需要访问`http://127.0.0.1:8000/auth?username=test&password=test123456`，得到`token`
+
+```json
+{
+  "code": 200,
+  "data": {
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InRlc3QiLCJwYXNzd29yZCI6InRlc3QxMjM0NTYiLCJleHAiOjE1MTg3MjQ2OTMsImlzcyI6Imdpbi1ibG9nIn0.KSBY6TeavV_30kfmP7HWLRYKP5TPEDgHtABe9HCsic4"
+  },
+  "msg": "ok"
+}
+```
+
+再用包含`token`的 URL 参数去访问我们的应用 API，
+
+访问`http://127.0.0.1:8000/api/v1/articles?token=eyJhbGci...`，检查接口返回值
+
+```json
+{
+  "code": 200,
+  "data": {
+    "lists": [
+      {
+        "id": 2,
+        "created_on": 1518700920,
+        "modified_on": 0,
+        "tag_id": 1,
+        "tag": {
+          "id": 1,
+          "created_on": 1518684200,
+          "modified_on": 0,
+          "name": "tag1",
+          "created_by": "",
+          "modified_by": "",
+          "state": 0
+        },
+        "content": "test-content",
+        "created_by": "test-created",
+        "modified_by": "",
+        "state": 0
+      }
+    ],
+    "total": 1
+  },
+  "msg": "ok"
+}
+```
+
+返回正确，至此我们的`jwt-go`在`Gin`中的验证就完成了！

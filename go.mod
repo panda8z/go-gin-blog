@@ -5,7 +5,7 @@ go 1.13
 require (
 	github.com/astaxie/beego v1.12.1
 	github.com/denisenkom/go-mssqldb v0.0.0-20200206145737-bbfc9a55622e // indirect
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/erikstmartin/go-testdb v0.0.0-20160219214506-8d10e4a1bae5 // indirect
 	github.com/gin-gonic/gin v1.5.0
 	github.com/go-ini/ini v1.52.0
@@ -22,10 +22,12 @@ require (
 replace (
 	github.com/panda8z/go-gin-example/conf => ./conf
 	github.com/panda8z/go-gin-example/middleware => ./middleware
+	github.com/panda8z/go-gin-example/middleware/jwt => ./middleware/jwt
 	github.com/panda8z/go-gin-example/models => ./models
 	github.com/panda8z/go-gin-example/pkg/e => ./pkg/e
 	github.com/panda8z/go-gin-example/pkg/setting => ./pkg/setting
 	github.com/panda8z/go-gin-example/pkg/util => ./pkg/util
 	github.com/panda8z/go-gin-example/routers => ./routers
+	github.com/panda8z/go-gin-example/routers/api => ./routers/api
 	github.com/panda8z/go-gin-example/runtime => ./runtime
 )

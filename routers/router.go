@@ -2,23 +2,34 @@ package routers
 
 import (
 	"github.com/gin-gonic/gin"
-
+	
+	"github.com/panda8z/go-gin-example/middleware/jwt"
 	"github.com/panda8z/go-gin-example/pkg/setting"
+	"github.com/panda8z/go-gin-example/routers/api"
 	v1 "github.com/panda8z/go-gin-example/routers/api/v1"
 )
 
 // InitRouter 初始化路由配置
 // 定义v1路由组
 func InitRouter() *gin.Engine {
+	// 创建路由
 	r := gin.New()
 
+	// 使用日志中间件
 	r.Use(gin.Logger())
 
+	// 使用自动恢复现场中间件
 	r.Use(gin.Recovery())
 
+	// 设置运行模式 debug release test
 	gin.SetMode(setting.RunMode)
 
+	// 添加一个认证路由
+	r.GET("/auth", api.GetAuth)
+
+	// v1路由组
 	apiv1 := r.Group("/api/v1")
+	apiv1.Use(jwt.JWT())
 	{
 		//获取标签列表
 		apiv1.GET("/tags", v1.GetTags)
