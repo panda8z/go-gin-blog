@@ -1,4 +1,404 @@
-# Gin搭建Blog API's （一）
+# 第一章 介绍与环境安装
+
+## 本文目标
+
+- 学会安装 Go。
+- 知道什么是 Go。
+- 知道什么是 Go modules。
+- 了解 Go modules 的小历史。
+- 学会简单的使用 Go modules。
+- 了解 Gin，并简单跑起一个 Demo。
+
+## 准备环节
+
+### 安装 Go
+
+#### Centos
+
+首先，根据对应的操作系统选择安装包 [下载](https://studygolang.com/dl)，在这里我使用的是 Centos 64 位系统，如下：
+
+```sh
+$ wget https://studygolang.com/dl/golang/go1.13.1.linux-amd64.tar.gz
+
+$ tar -zxvf go1.13.1.linux-amd64.tar.gz
+
+$ mv go/ /usr/local/
+```
+
+配置 /etc/profile
+
+```sh
+vi /etc/profile
+```
+
+添加环境变量 GOROOT 和将 GOBIN 添加到 PATH 中
+
+```sh
+export GOROOT=/usr/local/go
+export PATH=$PATH:$GOROOT/bin
+```
+
+配置完毕后，执行命令令其生效
+
+```sh
+source /etc/profile
+```
+
+在控制台输入`go version`，若输出版本号则**安装成功**，如下：
+
+```
+$ go version
+go version go1.13.1 linux/amd64
+```
+
+#### MacOS
+
+在 MacOS 上安装 Go 最方便的办法就是使用 brew，安装如下：
+
+```
+$ brew install go
+```
+
+升级命令如下：
+
+```
+$ brew upgrade go
+```
+
+注：升级命令你不需要执行，但我想未来你有一天会用到的。
+
+同样在控制台输入`go version`，若输出版本号则**安装成功**。
+
+### 了解 Go
+
+#### 是什么
+
+> Go is an open source programming language that makes it easy to build simple, reliable, and efficient software.
+
+上述为官方说明，如果简单来讲，大致为如下几点：
+
+- Go 是编程语言。
+- 谷歌爸爸撑腰。
+- 语言级高并发。
+- 上手快，入门简单。
+- 简洁，很有特色。
+- 国内使用人群逐年增多。
+
+#### 谁在用
+
+![image](README/6d278b22a4c0bf29c6b89ece99cd6c88.jpg)
+
+#### 有什么
+
+那么大家会有些疑问，纠结 `Go` 本身有什么东西，我们刚刚设置的环境变量又有什么用呢，甚至作为一名老粉，你会纠结 GOPATH 去哪里了，我们一起接着往下看。
+
+##### 目录结构
+
+首先，我们在解压的时候会得到一个名为 `go` 的文件夹，其中包括了所有 `Go` 语言相关的一些文件，如下：
+
+```
+$ tree -L 1 go
+go
+├── api
+├── bin
+├── doc
+├── lib
+├── misc
+├── pkg
+├── src
+├── test
+└── ...
+```
+
+在这之中包含了很多文件夹和文件，我们来简单说明其中主要文件夹的作用：
+
+- api：用于存放依照 `Go` 版本顺序的 API 增量列表文件。这里所说的 API 包含公开的变量、常量、函数等。这些 API 增量列表文件用于 `Go` 语言 API 检查
+- bin：用于存放主要的标准命令文件（可执行文件），包含`go`、`godoc`、`gofmt`
+- blog：用于存放官方博客中的所有文章
+- doc：用于存放标准库的 HTML 格式的程序文档。我们可以通过`godoc`命令启动一个 Web 程序展示这些文档
+- lib：用于存放一些特殊的库文件
+- misc：用于存放一些辅助类的说明和工具
+- pkg：用于存放安装`Go`标准库后的所有归档文件（以`.a`结尾的文件）。注意，你会发现其中有名称为`linux_amd64`的文件夹，我们称为平台相关目录。这类文件夹的名称由对应的操作系统和计算架构的名称组合而成。通过`go install`命令，`Go`程序会被编译成平台相关的归档文件存放到其中
+- src：用于存放 `Go`自身、`Go` 标准工具以及标准库的所有源码文件
+- test：存放用来测试和验证`Go`本身的所有相关文件
+
+##### 环境变量
+
+你可能会疑惑刚刚设置的环境变量是什么，如下：
+
+- GOROOT：`Go`的根目录。
+- PATH 下增加 `$GOROOT/bin`：`Go`的 `bin`下会存放可执行文件，我们把他加入 `$PATH` 后，未来拉下来并编译后的二进制文件就可以直接在命令行使用。
+
+那在什么东西都不下载的情况下，`$GOBIN` 下面有什么呢，如下：
+
+```
+bin/ $ls
+go  gofmt
+```
+
+- go：`Go` 二进制本身。
+- gofmt：代码格式化工具。
+
+因此我们刚刚把 `$GOBIN` 加入到 `$PATH` 后，你执行 `go version` 命令后就可以查看到对应的输出结果。
+
+注：MacOS 用 brew 安装的话就不需要。
+
+#### 放在哪
+
+你现在知道 Go 是什么了，也知道 Go 的源码摆在哪了，你肯定会想，那我应用代码放哪呢，答案是在 **Go1.11+ 和开启 Go Modules 的情况下摆哪都行**。
+
+### 了解 Go Modules
+
+#### 了解历史
+
+在过去，Go 的依赖包管理在工具上混乱且不统一，有 dep，有 glide，有 govendor…甚至还有因为外网的问题，频频导致拉不下来包，很多人苦不堪言，盼着官方给出一个大一统做出表率。
+
+而在 Go modules 正式出来之前还有一个叫 dep 的项目，我们在上面有提到，它是 Go 的一个官方实验性项目，目的也是为了解决 Go 在依赖管理方面的问题，当时社区里面几乎所有的人都认为 dep 肯定就是未来 Go 官方的依赖管理解决方案了。
+
+但是万万没想到，半路杀出个程咬金，Russ Cox 义无反顾地推出了 Go modules，这瞬间导致一石激起千层浪，让社区炸了锅。大家一致认为 Go team 实在是太霸道、太独裁了，连个招呼都不打一声。我记得当时有很多人在网上跟 Russ Cox 口水战，各种依赖管理解决方案的专家都冒出来发表意见，讨论范围甚至一度超出了 Go 语言的圈子触及到了其他语言的领域。
+
+当然，最后，推成功了，Go modules 已经进入官方工具链中，与 Go 深深结合，以前常说的 GOPATH 终将会失去它原有的作用，而且它还提供了 GOPROXY 间接解决了国内访问外网的问题。
+
+#### 了解 Russ Cox
+
+在上文中提到的 Russ Cox 是谁呢，他是 Go 这个项目目前代码提交量最多的人，甚至是第二名的两倍还要多（从 2019 年 09 月 30 日前来看）。
+
+Russ Cox 还是 Go 现在的掌舵人（大家应该知道之前 Go 的掌舵人是 Rob Pike，但是听说由于他本人不喜欢特朗普执政所以离开了美国，然后他岁数也挺大的了，所以也正在逐渐交权，不过现在还是在参与 Go 的发展）。
+
+Russ Cox 的个人能力相当强，看问题的角度也很独特，这也就是为什么他刚一提出 Go modules 的概念就能引起那么大范围的响应。虽然是被强推的，但事实也证明当下的 Go modules 表现得确实很优秀，所以这表明一定程度上的 “独裁” 还是可以接受的，至少可以保证一个项目能更加专一地朝着一个方向发展。
+
+#### 初始化行为
+
+在前面我们已经了解到 Go 依赖包管理的历史情况，接下来我们将正式的进入使用，首先你需要有一个你喜欢的目录，例如：`$ mkdir ~/go-application && cd ~/go-application`，然后执行如下命令：
+
+```
+$ mkdir go-gin-example && cd go-gin-example
+
+$ go env -w GO111MODULE=on
+
+$ go env -w GOPROXY=https://goproxy.cn,direct
+
+$ go mod init github.com/EDDYCJY/go-gin-example
+go: creating new go.mod: module github.com/EDDYCJY/go-gin-example
+
+$ ls
+go.mod
+```
+
+- `mkdir xxx && cd xxx`：创建并切换到项目目录里去。
+- `go env -w GO111MODULE=on`：打开 Go modules 开关（目前在 Go1.13 中默认值为 `auto`）。
+- `go env -w GOPROXY=...`：设置 GOPROXY 代理，这里主要涉及到两个值，第一个是 `https://goproxy.cn`，它是由七牛云背书的一个强大稳定的 Go 模块代理，可以有效地解决你的外网问题；第二个是 `direct`，它是一个特殊的 fallback 选项，它的作用是用于指示 Go 在拉取模块时遇到错误会回源到模块版本的源地址去抓取（比如 GitHub 等）。
+- `go mod init [MODULE_PATH]`：初始化 Go modules，它将会生成 go.mod 文件，需要注意的是 `MODULE_PATH` 填写的是模块引入路径，你可以根据自己的情况修改路径。
+
+在执行了上述步骤后，初始化工作已完成，我们打开 `go.mod` 文件看看，如下：
+
+```
+module github.com/EDDYCJY/go-gin-example
+
+go 1.13
+```
+
+默认的 `go.mod` 文件里主要是两块内容，一个是当前的模块路径和预期的 Go 语言版本。
+
+#### 基础使用
+
+- 用
+
+   
+
+  ```
+  go get
+  ```
+
+   
+
+  拉取新的依赖
+
+  - 拉取最新的版本(优先择取 tag)：`go get golang.org/x/text@latest`
+  - 拉取 `master` 分支的最新 commit：`go get golang.org/x/text@master`
+  - 拉取 tag 为 v0.3.2 的 commit：`go get golang.org/x/text@v0.3.2`
+  - 拉取 hash 为 342b231 的 commit，最终会被转换为 v0.3.2：`go get golang.org/x/text@342b2e`
+  - 用 `go get -u` 更新现有的依赖
+  - 用 `go mod download` 下载 go.mod 文件中指明的所有依赖
+  - 用 `go mod tidy` 整理现有的依赖
+  - 用 `go mod graph` 查看现有的依赖结构
+  - 用 `go mod init` 生成 go.mod 文件 (Go 1.13 中唯一一个可以生成 go.mod 文件的子命令)
+
+- 用 `go mod edit` 编辑 go.mod 文件
+
+- 用 `go mod vendor` 导出现有的所有依赖 (事实上 Go modules 正在淡化 Vendor 的概念)
+
+- 用 `go mod verify` 校验一个模块是否被篡改过
+
+这一小节主要是针对 Go modules 的基础使用讲解，还没具体的使用，是希望你能够留个印象，因为在后面章节会不断夹杂 Go modules 的知识点。
+
+注：建议阅读官方文档 [wiki/Modules](https://github.com/golang/go/wiki/Modules)。
+
+## 开始 Gin 之旅
+
+### 是什么
+
+> Gin is a HTTP web framework written in Go (Golang). It features a Martini-like API with much better performance – up to 40 times faster. If you need smashing performance, get yourself some Gin.
+
+Gin 是用 Go 开发的一个微框架，类似 Martinier 的 API，重点是小巧、易用、性能好很多，也因为 [httprouter](https://github.com/julienschmidt/httprouter) 的性能提高了 40 倍。
+
+### 安装
+
+我们回到刚刚创建的 `go-gin-example` 目录下，在命令行下执行如下命令：
+
+```sh
+$ go get -u github.com/gin-gonic/gin
+go: downloading golang.org/x/sys v0.0.0-20190222072716-a9d3bda3a223
+go: extracting golang.org/x/sys v0.0.0-20190222072716-a9d3bda3a223
+go: finding github.com/gin-contrib/sse v0.1.0
+go: finding github.com/ugorji/go v1.1.7
+go: finding gopkg.in/yaml.v2 v2.2.3
+go: finding golang.org/x/sys latest
+go: finding github.com/mattn/go-isatty v0.0.9
+go: finding github.com/modern-go/concurrent latest
+...
+```
+
+#### go.sum
+
+这时候你再检查一下该目录下，会发现多个了个 `go.sum` 文件，如下：
+
+```
+github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW...
+github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW...
+github.com/gin-contrib/sse v0.0.0-20190301062529-5545eab6dad3 h1:t8FVkw33L+wilf2QiWkw0UV77qRpcH/JHPKGpKa2E8g=
+github.com/gin-contrib/sse v0.0.0-20190301062529-5545eab6dad3/go.mod h1:VJ0WA2...
+github.com/gin-contrib/sse v0.1.0 h1:Y/yl/+YNO...
+...
+```
+
+`go.sum` 文件详细罗列了当前项目直接或间接依赖的所有模块版本，并写明了那些模块版本的 SHA-256 哈希值以备 Go 在今后的操作中保证项目所依赖的那些模块版本不会被篡改。
+
+#### go.mod
+
+既然我们下载了依赖包，`go.mod` 文件会不会有所改变呢，我们再去看看，如下：
+
+```
+module github.com/EDDYCJY/go-gin-example
+
+go 1.13
+
+require (
+        github.com/gin-contrib/sse v0.1.0 // indirect
+        github.com/gin-gonic/gin v1.4.0 // indirect
+        github.com/golang/protobuf v1.3.2 // indirect
+        github.com/json-iterator/go v1.1.7 // indirect
+        github.com/mattn/go-isatty v0.0.9 // indirect
+        github.com/ugorji/go v1.1.7 // indirect
+        golang.org/x/sys v0.0.0-20190927073244-c990c680b611 // indirect
+        gopkg.in/yaml.v2 v2.2.3 // indirect
+)
+```
+
+确确实实发生了改变，那多出来的东西又是什么呢，`go.mod` 文件又保存了什么信息呢，实际上 `go.mod` 文件是启用了 Go modules 的项目所必须的最重要的文件，因为它描述了当前项目（也就是当前模块）的元信息，每一行都以一个动词开头，目前有以下 5 个动词:
+
+- module：用于定义当前项目的模块路径。
+- go：用于设置预期的 Go 版本。
+- require：用于设置一个特定的模块版本。
+- exclude：用于从使用中排除一个特定的模块版本。
+- replace：用于将一个模块版本替换为另外一个模块版本。
+
+你可能还会疑惑 `indirect` 是什么东西，`indirect` 的意思是传递依赖，也就是非直接依赖。
+
+### 测试
+
+编写一个`test.go`文件
+
+```go
+package main
+
+import "github.com/gin-gonic/gin"
+
+func main() {
+  r := gin.Default()
+  r.GET("/ping", func(c *gin.Context) {
+    c.JSON(200, gin.H{
+      "message": "pong",
+    })
+  })
+  r.Run() // listen and serve on 0.0.0.0:8080
+}
+```
+
+执行`test.go`
+
+```sh
+$ go run test.go
+...
+[GIN-debug] GET    /ping                     --> main.main.func1 (3 handlers)
+[GIN-debug] Environment variable PORT is undefined. Using port :8080 by default
+[GIN-debug] Listening and serving HTTP on :8080
+```
+
+访问 `$HOST:8080/ping`，若返回`{"message":"pong"}`则正确
+
+```sh
+curl 127.0.0.1:8080/ping
+```
+
+至此，我们的环境安装和初步运行都基本完成了。
+
+## 再想一想
+
+刚刚在执行了命令 `$ go get -u github.com/gin-gonic/gin` 后，我们查看了 `go.mod` 文件，如下：
+
+```
+...
+require (
+        github.com/gin-contrib/sse v0.1.0 // indirect
+        github.com/gin-gonic/gin v1.4.0 // indirect
+        ...
+)
+```
+
+你会发现 `go.mod` 里的 `github.com/gin-gonic/gin` 是 `indirect` 模式，这显然不对啊，因为我们的应用程序已经实际的编写了 gin server 代码了，我就想把它调对，怎么办呢，在应用根目录下执行如下命令：
+
+```
+$ go mod tidy
+```
+
+该命令主要的作用是整理现有的依赖，非常的常用，执行后 `go.mod` 文件内容为：
+
+```
+...
+require (
+        github.com/gin-contrib/sse v0.1.0 // indirect
+        github.com/gin-gonic/gin v1.4.0
+        ...
+)
+```
+
+可以看到 `github.com/gin-gonic/gin` 已经变成了直接依赖，调整完毕。
+
+## 参考
+
+### 本系列示例代码
+
+- [go-gin-example](https://github.com/EDDYCJY/go-gin-example)
+
+### 相关文档
+
+- [Gin](https://github.com/gin-gonic/gin)
+- [Gin Web Framework](https://gin-gonic.github.io/gin/)
+- [干货满满的 Go Modules 和 goproxy.cn](https://book.eddycjy.com/golang/talk/goproxy-cn.html)
+
+## 关于
+
+### 修改记录
+
+- 第一版：2018 年 02 月 16 日发布文章
+- 第二版：2019 年 10 月 01 日修改文章
+
+## ？
+
+如果有任何疑问或错误，欢迎在 [issues](https://github.com/EDDYCJY/blog) 进行提问或给予修正意见，如果喜欢或对你有所帮助，欢迎 Star，对作者是一种鼓励和推进。
+
+# 第二章 Gin搭建Blog API's （一）
 
 项目地址：https://github.com/panda8z/go-gin-example
 
@@ -667,7 +1067,7 @@ go-gin-example/
 
 
 
-# Gin搭建Blog API's （二）
+# 第三章 搭建Blog API's （二）
 
 项目地址：https://github.com/EDDYCJY/go-gin-example
 
@@ -1185,7 +1585,7 @@ func EditTag(id int, data interface {}) bool {
 
 
 
-# Gin搭建Blog API's （三）
+# 第四章 Gin搭建Blog API's （三）
 
 ## 涉及知识点
 
@@ -1806,7 +2206,7 @@ $ go run main.go
 
 #
 
-# 使用 JWT 进行身份校验
+# 第五章 使用 JWT 进行身份校验
 
 ## 涉及知识点
 
@@ -2223,3 +2623,621 @@ go-gin-example/
 ```
 
 返回正确，至此我们的`jwt-go`在`Gin`中的验证就完成了！
+
+
+
+
+
+# 第六章 编写一个简单的文件日志
+
+## 涉及知识点
+
+- 自定义 log。
+
+## 本文目标
+
+在上一节中，我们解决了 API’s 可以任意访问的问题，那么我们现在还有一个问题，就是我们的日志，都是输出到控制台上的，这显然对于一个项目来说是不合理的，因此我们这一节简单封装`log`库，使其支持简单的文件日志！
+
+## 新建`logging`包
+
+我们在`pkg`下新建`logging`目录，新建`file.go`和`log.go`文件，写入内容：
+
+### 编写`file`文件
+
+**1、 file.go：**
+
+```go
+package logging
+
+import (
+	"os"
+	"time"
+	"fmt"
+	"log"
+)
+
+var (
+	LogSavePath = "runtime/logs/"
+	LogSaveName = "log"
+	LogFileExt = "log"
+	TimeFormat = "20060102"
+)
+
+func getLogFilePath() string {
+	return fmt.Sprintf("%s", LogSavePath)
+}
+
+func getLogFileFullPath() string {
+	prefixPath := getLogFilePath()
+	suffixPath := fmt.Sprintf("%s%s.%s", LogSaveName, time.Now().Format(TimeFormat), LogFileExt)
+
+	return fmt.Sprintf("%s%s", prefixPath, suffixPath)
+}
+
+func openLogFile(filePath string) *os.File {
+	_, err := os.Stat(filePath)
+	switch {
+		case os.IsNotExist(err):
+			mkDir()
+		case os.IsPermission(err):
+			log.Fatalf("Permission :%v", err)
+	}
+
+	handle, err := os.OpenFile(filePath, os.O_APPEND | os.O_CREATE | os.O_WRONLY, 0644)
+	if err != nil {
+		log.Fatalf("Fail to OpenFile :%v", err)
+	}
+
+	return handle
+}
+
+func mkDir() {
+	dir, _ := os.Getwd()
+	err := os.MkdirAll(dir + "/" + getLogFilePath(), os.ModePerm)
+	if err != nil {
+		panic(err)
+	}
+}
+```
+
+- `os.Stat`：返回文件信息结构描述文件。如果出现错误，会返回`*PathError`
+
+```go
+type PathError struct {
+    Op   string
+    Path string
+    Err  error
+}
+```
+
+- `os.IsNotExist`：能够接受`ErrNotExist`、`syscall`的一些错误，它会返回一个布尔值，能够得知文件不存在或目录不存在
+- `os.IsPermission`：能够接受`ErrPermission`、`syscall`的一些错误，它会返回一个布尔值，能够得知权限是否满足
+- `os.OpenFile`：调用文件，支持传入文件名称、指定的模式调用文件、文件权限，返回的文件的方法可以用于 I/O。如果出现错误，则为`*PathError`。
+
+```go
+const (
+    // Exactly one of O_RDONLY, O_WRONLY, or O_RDWR must be specified.
+    O_RDONLY int = syscall.O_RDONLY // 以只读模式打开文件
+    O_WRONLY int = syscall.O_WRONLY // 以只写模式打开文件
+    O_RDWR   int = syscall.O_RDWR   // 以读写模式打开文件
+    // The remaining values may be or'ed in to control behavior.
+    O_APPEND int = syscall.O_APPEND // 在写入时将数据追加到文件中
+    O_CREATE int = syscall.O_CREAT  // 如果不存在，则创建一个新文件
+    O_EXCL   int = syscall.O_EXCL   // 使用O_CREATE时，文件必须不存在
+    O_SYNC   int = syscall.O_SYNC   // 同步IO
+    O_TRUNC  int = syscall.O_TRUNC  // 如果可以，打开时
+)
+```
+
+- `os.Getwd`：返回与当前目录对应的根路径名
+- `os.MkdirAll`：创建对应的目录以及所需的子目录，若成功则返回`nil`，否则返回`error`
+- `os.ModePerm`：`const`定义`ModePerm FileMode = 0777`
+
+### 编写`log`文件
+
+**2、log.go**
+
+```go
+package logging
+
+import (
+	"log"
+	"os"
+	"runtime"
+	"path/filepath"
+	"fmt"
+)
+
+type Level int
+
+var (
+	F *os.File
+
+	DefaultPrefix = ""
+	DefaultCallerDepth = 2
+
+	logger *log.Logger
+	logPrefix = ""
+	levelFlags = []string{"DEBUG", "INFO", "WARN", "ERROR", "FATAL"}
+)
+
+const (
+	DEBUG Level = iota
+	INFO
+	WARNING
+	ERROR
+	FATAL
+)
+
+func init() {
+	filePath := getLogFileFullPath()
+	F = openLogFile(filePath)
+
+	logger = log.New(F, DefaultPrefix, log.LstdFlags)
+}
+
+func Debug(v ...interface{}) {
+	setPrefix(DEBUG)
+	logger.Println(v)
+}
+
+func Info(v ...interface{}) {
+	setPrefix(INFO)
+	logger.Println(v)
+}
+
+func Warn(v ...interface{}) {
+	setPrefix(WARNING)
+	logger.Println(v)
+}
+
+func Error(v ...interface{}) {
+	setPrefix(ERROR)
+	logger.Println(v)
+}
+
+func Fatal(v ...interface{}) {
+	setPrefix(FATAL)
+	logger.Fatalln(v)
+}
+
+func setPrefix(level Level) {
+	_, file, line, ok := runtime.Caller(DefaultCallerDepth)
+	if ok {
+		logPrefix = fmt.Sprintf("[%s][%s:%d]", levelFlags[level], filepath.Base(file), line)
+	} else {
+		logPrefix = fmt.Sprintf("[%s]", levelFlags[level])
+	}
+
+	logger.SetPrefix(logPrefix)
+}
+```
+
+- `log.New`：创建一个新的日志记录器。`out`定义要写入日志数据的`IO`句柄。`prefix`定义每个生成的日志行的开头。`flag`定义了日志记录属性
+
+```go
+func New(out io.Writer, prefix string, flag int) *Logger {
+    return &Logger{out: out, prefix: prefix, flag: flag}
+}
+```
+
+- `log.LstdFlags`：日志记录的格式属性之一，其余的选项如下
+
+```go
+const (
+    Ldate         = 1 << iota     // the date in the local time zone: 2009/01/23
+    Ltime                         // the time in the local time zone: 01:23:23
+    Lmicroseconds                 // microsecond resolution: 01:23:23.123123.  assumes Ltime.
+    Llongfile                     // full file name and line number: /a/b/c/d.go:23
+    Lshortfile                    // final file name element and line number: d.go:23. overrides Llongfile
+    LUTC                          // if Ldate or Ltime is set, use UTC rather than the local time zone
+    LstdFlags     = Ldate | Ltime // initial values for the standard logger
+)
+```
+
+当前目录结构：
+
+```
+gin-blog/
+├── conf
+│   └── app.ini
+├── main.go
+├── middleware
+│   └── jwt
+│       └── jwt.go
+├── models
+│   ├── article.go
+│   ├── auth.go
+│   ├── models.go
+│   └── tag.go
+├── pkg
+│   ├── e
+│   │   ├── code.go
+│   │   └── msg.go
+│   ├── logging
+│   │   ├── file.go
+│   │   └── log.go
+│   ├── setting
+│   │   └── setting.go
+│   └── util
+│       ├── jwt.go
+│       └── pagination.go
+├── routers
+│   ├── api
+│   │   ├── auth.go
+│   │   └── v1
+│   │       ├── article.go
+│   │       └── tag.go
+│   └── router.go
+├── runtime
+```
+
+我们自定义的`logging`包，已经基本完成了，接下来让它接入到我们的项目之中吧。我们打开先前包含`log`包的代码，如下：
+
+1. 打开`routers`目录下的`article.go`、`tag.go`、`auth.go`。
+2. 将`log`包的引用删除，修改引用我们自己的日志包为`github.com/EDDYCJY/go-gin-example/pkg/logging`。
+3. 将原本的`log.Println(...)`改为`logging.Info(...)`。
+
+例如`auth.go`文件的修改内容：
+
+```go
+package api
+
+import (
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+	"github.com/astaxie/beego/validation"
+
+	"github.com/EDDYCJY/go-gin-example/pkg/e"
+	"github.com/EDDYCJY/go-gin-example/pkg/util"
+	"github.com/EDDYCJY/go-gin-example/models"
+	"github.com/EDDYCJY/go-gin-example/pkg/logging"
+)
+...
+func GetAuth(c *gin.Context) {
+	...
+	code := e.INVALID_PARAMS
+	if ok {
+		...
+	} else {
+	    for _, err := range valid.Errors {
+                logging.Info(err.Key, err.Message)
+            }
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+        "code" : code,
+        "msg" : e.GetMsg(code),
+        "data" : data,
+    })
+}
+```
+
+## 验证功能
+
+修改文件后，重启服务，我们来试试吧！
+
+获取到 API 的 Token 后，我们故意传错误 URL 参数给接口，如：`http://127.0.0.1:8000/api/v1/articles?tag_id=0&state=9999999&token=eyJhbG..`
+
+然后我们到`$GOPATH/gin-blog/runtime/logs`查看日志：
+
+```
+$ tail -f log20180216.log
+[INFO][article.go:79]2018/02/16 18:33:12 [state 状态只允许0或1]
+[INFO][article.go:79]2018/02/16 18:33:42 [state 状态只允许0或1]
+[INFO][article.go:79]2018/02/16 18:33:42 [tag_id 标签ID必须大于0]
+[INFO][article.go:79]2018/02/16 18:38:39 [state 状态只允许0或1]
+[INFO][article.go:79]2018/02/16 18:38:39 [tag_id 标签ID必须大于0]
+```
+
+日志结构一切正常，我们的记录模式都为`Info`，因此前缀是对的，并且我们是入参有问题，也把错误记录下来了，这样排错就很方便了！
+
+至此，本节就完成了，这只是一个简单的扩展，实际上我们线上项目要使用的文件日志，是更复杂一些，开动你的大脑 举一反三吧！
+
+
+
+
+
+# 第七章 优雅的重启服务
+
+## 知识点
+
+- 信号量的了解。
+- 应用热更新。
+
+## 本文目标
+
+在前面编写案例代码时，我相信你会想到，每次更新完代码，更新完配置文件后，就直接这么 `ctrl+c` 真的没问题吗，`ctrl+c`到底做了些什么事情呢？
+
+在这一节中我们简单讲述 `ctrl+c` 背后的**信号**以及如何在`Gin`中**优雅的重启服务**，也就是对 `HTTP` 服务进行热更新。
+
+## ctrl + c
+
+> 内核在某些情况下发送信号，比如在进程往一个已经关闭的管道写数据时会产生`SIGPIPE`信号
+
+在终端执行特定的组合键可以使系统发送特定的信号给此进程，完成一系列的动作
+
+| 命令     | 信号    | 含义                                                         |
+| -------- | ------- | ------------------------------------------------------------ |
+| ctrl + c | SIGINT  | 强制进程结束                                                 |
+| ctrl + z | SIGTSTP | 任务中断，进程挂起                                           |
+| ctrl + \ | SIGQUIT | 进程结束 和 `dump core`                                      |
+| ctrl + d |         | EOF                                                          |
+|          | SIGHUP  | 终止收到该信号的进程。若程序中没有捕捉该信号，当收到该信号时，进程就会退出（常用于 重启、重新加载进程） |
+
+因此在我们执行`ctrl + c`关闭`gin`服务端时，**会强制进程结束，导致正在访问的用户等出现问题**
+
+常见的 `kill -9 pid` 会发送 `SIGKILL` 信号给进程，也是类似的结果
+
+### 信号
+
+本段中反复出现**信号**是什么呢？
+
+信号是 `Unix` 、类 `Unix` 以及其他 `POSIX` 兼容的操作系统中进程间通讯的一种有限制的方式
+
+它是一种异步的通知机制，用来提醒进程一个事件（硬件异常、程序执行异常、外部发出信号）已经发生。当一个信号发送给一个进程，操作系统中断了进程正常的控制流程。此时，任何非原子操作都将被中断。如果进程定义了信号的处理函数，那么它将被执行，否则就执行默认的处理函数
+
+### 所有信号
+
+```
+$ kill -l
+ 1) SIGHUP   2) SIGINT   3) SIGQUIT  4) SIGILL   5) SIGTRAP
+ 6) SIGABRT  7) SIGBUS   8) SIGFPE   9) SIGKILL 10) SIGUSR1
+11) SIGSEGV 12) SIGUSR2 13) SIGPIPE 14) SIGALRM 15) SIGTERM
+16) SIGSTKFLT   17) SIGCHLD 18) SIGCONT 19) SIGSTOP 20) SIGTSTP
+21) SIGTTIN 22) SIGTTOU 23) SIGURG  24) SIGXCPU 25) SIGXFSZ
+26) SIGVTALRM   27) SIGPROF 28) SIGWINCH    29) SIGIO   30) SIGPWR
+31) SIGSYS  34) SIGRTMIN    35) SIGRTMIN+1  36) SIGRTMIN+2  37) SIGRTMIN+3
+38) SIGRTMIN+4  39) SIGRTMIN+5  40) SIGRTMIN+6  41) SIGRTMIN+7  42) SIGRTMIN+8
+43) SIGRTMIN+9  44) SIGRTMIN+10 45) SIGRTMIN+11 46) SIGRTMIN+12 47) SIGRTMIN+13
+48) SIGRTMIN+14 49) SIGRTMIN+15 50) SIGRTMAX-14 51) SIGRTMAX-13 52) SIGRTMAX-12
+53) SIGRTMAX-11 54) SIGRTMAX-10 55) SIGRTMAX-9  56) SIGRTMAX-8  57) SIGRTMAX-7
+58) SIGRTMAX-6  59) SIGRTMAX-5  60) SIGRTMAX-4  61) SIGRTMAX-3  62) SIGRTMAX-2
+63) SIGRTMAX-1  64) SIGRTMAX
+```
+
+## 怎样算优雅
+
+### 目的
+
+- 不关闭现有连接（正在运行中的程序）
+- 新的进程启动并替代旧进程
+- 新的进程接管新的连接
+- 连接要随时响应用户的请求，当用户仍在请求旧进程时要保持连接，新用户应请求新进程，不可以出现拒绝请求的情况
+
+### 流程
+
+1、替换可执行文件或修改配置文件
+
+2、发送信号量 `SIGHUP`
+
+3、拒绝新连接请求旧进程，但要保证已有连接正常
+
+4、启动新的子进程
+
+5、新的子进程开始 `Accet`
+
+6、系统将新的请求转交新的子进程
+
+7、旧进程处理完所有旧连接后正常结束
+
+## 实现优雅重启
+
+### endless
+
+> Zero downtime restarts for golang HTTP and HTTPS servers. (for golang 1.3+)
+
+我们借助 [fvbock/endless](https://github.com/fvbock/endless) 来实现 `Golang HTTP/HTTPS` 服务重新启动的零停机
+
+`endless server` 监听以下几种信号量：
+
+- syscall.SIGHUP：触发 `fork` 子进程和重新启动
+- syscall.SIGUSR1/syscall.SIGTSTP：被监听，但不会触发任何动作
+- syscall.SIGUSR2：触发 `hammerTime`
+- syscall.SIGINT/syscall.SIGTERM：触发服务器关闭（会完成正在运行的请求）
+
+`endless` 正正是依靠监听这些**信号量**，完成管控的一系列动作
+
+#### 安装
+
+```
+go get -u github.com/fvbock/endless
+```
+
+#### 编写
+
+打开 [gin-blog](https://github.com/EDDYCJY/go-gin-example) 的 `main.go`文件，修改文件：
+
+```go
+package main
+
+import (
+    "fmt"
+    "log"
+    "syscall"
+
+    "github.com/fvbock/endless"
+
+    "gin-blog/routers"
+    "gin-blog/pkg/setting"
+)
+
+func main() {
+    endless.DefaultReadTimeOut = setting.ReadTimeout
+    endless.DefaultWriteTimeOut = setting.WriteTimeout
+    endless.DefaultMaxHeaderBytes = 1 << 20
+    endPoint := fmt.Sprintf(":%d", setting.HTTPPort)
+
+    server := endless.NewServer(endPoint, routers.InitRouter())
+    server.BeforeBegin = func(add string) {
+        log.Printf("Actual pid is %d", syscall.Getpid())
+    }
+
+    err := server.ListenAndServe()
+    if err != nil {
+        log.Printf("Server err: %v", err)
+    }
+}
+```
+
+`endless.NewServer` 返回一个初始化的 `endlessServer` 对象，在 `BeforeBegin` 时输出当前进程的 `pid`，调用 `ListenAndServe` 将实际“启动”服务
+
+#### 验证
+
+##### **编译**
+
+```
+$ go build main.go
+```
+
+##### **执行**
+
+```
+$ ./main
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+...
+Actual pid is 48601
+```
+
+启动成功后，输出了`pid`为 48601；在另外一个终端执行 `kill -1 48601` ，检验先前服务的终端效果
+
+```
+[root@localhost go-gin-example]# ./main
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:   export GIN_MODE=release
+ - using code:  gin.SetMode(gin.ReleaseMode)
+
+[GIN-debug] GET    /auth                     --> ...
+[GIN-debug] GET    /api/v1/tags              --> ...
+...
+
+Actual pid is 48601
+
+...
+
+Actual pid is 48755
+48601 Received SIGTERM.
+48601 [::]:8000 Listener closed.
+48601 Waiting for connections to finish...
+48601 Serve() returning...
+Server err: accept tcp [::]:8000: use of closed network connection
+```
+
+可以看到该命令已经挂起，并且 `fork` 了新的子进程 `pid` 为 `48755`
+
+```
+48601 Received SIGTERM.
+48601 [::]:8000 Listener closed.
+48601 Waiting for connections to finish...
+48601 Serve() returning...
+Server err: accept tcp [::]:8000: use of closed network connection
+```
+
+大致意思为主进程（`pid`为 48601）接受到 `SIGTERM` 信号量，关闭主进程的监听并且等待正在执行的请求完成；这与我们先前的描述一致
+
+##### **唤醒**
+
+这时候在 `postman` 上再次访问我们的接口，你可以惊喜的发现，他“复活”了！
+
+```
+Actual pid is 48755
+48601 Received SIGTERM.
+48601 [::]:8000 Listener closed.
+48601 Waiting for connections to finish...
+48601 Serve() returning...
+Server err: accept tcp [::]:8000: use of closed network connection
+
+
+$ [GIN] 2018/03/15 - 13:00:16 | 200 |     188.096µs |   192.168.111.1 | GET      /api/v1/tags...
+```
+
+这就完成了一次正向的流转了
+
+你想想，每次更新发布、或者修改配置文件等，只需要给该进程发送**SIGTERM 信号**，而不需要强制结束应用，是多么便捷又安全的事！
+
+#### 问题
+
+`endless` 热更新是采取创建子进程后，将原进程退出的方式，这点不符合守护进程的要求
+
+### http.Server - Shutdown()
+
+如果你的`Golang >= 1.8`，也可以考虑使用 `http.Server` 的 [Shutdown](https://golang.org/pkg/net/http/#Server.Shutdown) 方法
+
+```go
+package main
+
+import (
+    "fmt"
+    "net/http"
+    "context"
+    "log"
+    "os"
+    "os/signal"
+    "time"
+
+
+    "gin-blog/routers"
+    "gin-blog/pkg/setting"
+)
+
+func main() {
+    router := routers.InitRouter()
+
+    s := &http.Server{
+        Addr:           fmt.Sprintf(":%d", setting.HTTPPort),
+        Handler:        router,
+        ReadTimeout:    setting.ReadTimeout,
+        WriteTimeout:   setting.WriteTimeout,
+        MaxHeaderBytes: 1 << 20,
+    }
+
+    go func() {
+        if err := s.ListenAndServe(); err != nil {
+            log.Printf("Listen: %s\n", err)
+        }
+    }()
+
+    quit := make(chan os.Signal)
+    signal.Notify(quit, os.Interrupt)
+    <- quit
+
+    log.Println("Shutdown Server ...")
+
+    ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
+    defer cancel()
+    if err := s.Shutdown(ctx); err != nil {
+        log.Fatal("Server Shutdown:", err)
+    }
+
+    log.Println("Server exiting")
+}
+```
+
+## 小结
+
+在日常的服务中，优雅的重启（热更新）是非常重要的一环。而 `Golang` 在 `HTTP` 服务方面的热更新也有不少方案了，我们应该根据实际应用场景挑选最合适的
+
+## 参考
+
+### 本系列示例代码
+
+- [go-gin-example](https://github.com/EDDYCJY/go-gin-example)
+
+### 拓展阅读
+
+- [manners](https://github.com/braintree/manners)
+- [graceful](https://github.com/tylerb/graceful)
+- [grace](https://github.com/facebookgo/grace)
+- [plugin: new package for loading plugins · golang/go@0cbb12f · GitHub](https://github.com/golang/go/commit/0cbb12f0bbaeb3893b3d011fdb1a270291747ab0)
+
+## 关于
+
+### 修改记录
+
+- 第一版：2018 年 02 月 16 日发布文章
+- 第二版：2019 年 10 月 01 日修改文章
+
+## ？
+
+如果有任何疑问或错误，欢迎在 [issues](https://github.com/EDDYCJY/blog) 进行提问或给予修正意见，如果喜欢或对你有所帮助，欢迎 Star，对作者是一种鼓励和推进。

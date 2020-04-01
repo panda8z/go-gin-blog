@@ -1,7 +1,6 @@
 package api
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/astaxie/beego/validation"
@@ -9,6 +8,7 @@ import (
 
 	"github.com/panda8z/go-gin-example/models"
 	"github.com/panda8z/go-gin-example/pkg/e"
+	"github.com/panda8z/go-gin-example/pkg/logging"
 	"github.com/panda8z/go-gin-example/pkg/util"
 )
 
@@ -20,7 +20,6 @@ type auth struct {
 func GetAuth(c *gin.Context) {
 	username := c.Query("username")
 	password := c.Query("password")
-	
 
 	valid := validation.Validation{}
 	a := auth{Username: username, Password: password}
@@ -44,8 +43,9 @@ func GetAuth(c *gin.Context) {
 			code = e.ERROR_AUTH
 		}
 	} else {
+		// 拿到所有错误全部打印到日志里去
 		for _, err := range valid.Errors {
-			log.Println(err.Key, err.Message)
+			logging.Info(err.Key, err.Message)
 		}
 	}
 
