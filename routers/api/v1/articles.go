@@ -13,7 +13,7 @@ import (
 	"github.com/unknwon/com"
 )
 
-//获取单个文章
+// GetArticle 获取单个文章
 func GetArticle(c *gin.Context) {
 	id := com.StrTo(c.Param("id")).MustInt()
 
@@ -42,7 +42,7 @@ func GetArticle(c *gin.Context) {
 	})
 }
 
-//获取多个文章
+// GetArticles 获取多个文章
 func GetArticles(c *gin.Context) {
 	data := make(map[string]interface{})
 	maps := make(map[string]interface{})
@@ -56,12 +56,12 @@ func GetArticles(c *gin.Context) {
 		valid.Range(state, 0, 1, "state").Message("状态只允许0或1")
 	}
 
-	var tagId int = -1
+	var tagID int = -1
 	if arg := c.Query("tag_id"); arg != "" {
-		tagId = com.StrTo(arg).MustInt()
-		maps["tag_id"] = tagId
+		tagID = com.StrTo(arg).MustInt()
+		maps["tag_id"] = tagID
 
-		valid.Min(tagId, 1, "tag_id").Message("标签ID必须大于0")
+		valid.Min(tagID, 1, "tag_id").Message("标签ID必须大于0")
 	}
 
 	code := e.INVALID_PARAMS
@@ -84,9 +84,9 @@ func GetArticles(c *gin.Context) {
 	})
 }
 
-//新增文章
+// AddArticle 新增文章
 func AddArticle(c *gin.Context) {
-	tagId := com.StrTo(c.Query("tag_id")).MustInt()
+	tagID := com.StrTo(c.Query("tag_id")).MustInt()
 	title := c.Query("title")
 	desc := c.Query("desc")
 	content := c.Query("content")
@@ -94,7 +94,7 @@ func AddArticle(c *gin.Context) {
 	state := com.StrTo(c.DefaultQuery("state", "0")).MustInt()
 
 	valid := validation.Validation{}
-	valid.Min(tagId, 1, "tag_id").Message("标签ID必须大于0")
+	valid.Min(tagID, 1, "tag_id").Message("标签ID必须大于0")
 	valid.Required(title, "title").Message("标题不能为空")
 	valid.Required(desc, "desc").Message("简述不能为空")
 	valid.Required(content, "content").Message("内容不能为空")
@@ -103,9 +103,9 @@ func AddArticle(c *gin.Context) {
 
 	code := e.INVALID_PARAMS
 	if !valid.HasErrors() {
-		if models.ExistTagByID(tagId) {
+		if models.ExistTagByID(tagID) {
 			data := make(map[string]interface{})
-			data["tag_id"] = tagId
+			data["tag_id"] = tagID
 			data["title"] = title
 			data["desc"] = desc
 			data["content"] = content
@@ -130,12 +130,12 @@ func AddArticle(c *gin.Context) {
 	})
 }
 
-//修改文章
+// EditArticle 修改文章
 func EditArticle(c *gin.Context) {
 	valid := validation.Validation{}
 
 	id := com.StrTo(c.Param("id")).MustInt()
-	tagId := com.StrTo(c.Query("tag_id")).MustInt()
+	tagID := com.StrTo(c.Query("tag_id")).MustInt()
 	title := c.Query("title")
 	desc := c.Query("desc")
 	content := c.Query("content")
@@ -157,10 +157,10 @@ func EditArticle(c *gin.Context) {
 	code := e.INVALID_PARAMS
 	if !valid.HasErrors() {
 		if models.ExistArticleByID(id) {
-			if models.ExistTagByID(tagId) {
+			if models.ExistTagByID(tagID) {
 				data := make(map[string]interface{})
-				if tagId > 0 {
-					data["tag_id"] = tagId
+				if tagID > 0 {
+					data["tag_id"] = tagID
 				}
 				if title != "" {
 					data["title"] = title
@@ -195,7 +195,7 @@ func EditArticle(c *gin.Context) {
 	})
 }
 
-//删除文章
+// DeleteArticle 删除文章
 func DeleteArticle(c *gin.Context) {
 	id := com.StrTo(c.Param("id")).MustInt()
 

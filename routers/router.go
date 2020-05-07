@@ -2,11 +2,13 @@ package routers
 
 import (
 	"github.com/gin-gonic/gin"
-	
+	_ "github.com/panda8z/go-gin-example/docs"
 	"github.com/panda8z/go-gin-example/middleware/jwt"
 	"github.com/panda8z/go-gin-example/pkg/setting"
 	"github.com/panda8z/go-gin-example/routers/api"
 	v1 "github.com/panda8z/go-gin-example/routers/api/v1"
+	ginSwagger "github.com/swaggo/gin-swagger"
+	"github.com/swaggo/gin-swagger/swaggerFiles"
 )
 
 // InitRouter 初始化路由配置
@@ -23,6 +25,8 @@ func InitRouter() *gin.Engine {
 
 	// 设置运行模式 debug release test
 	gin.SetMode(setting.RunMode)
+
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// 添加一个认证路由
 	r.GET("/auth", api.GetAuth)
