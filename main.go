@@ -17,6 +17,7 @@ func main() {
 
 	endPoint := fmt.Sprintf(":%d", setting.HTTPPort)
 
+	log.Println("Service run at", endPoint)
 	server := endless.NewServer(endPoint, routers.InitRouter())
 	server.BeforeBegin = func(add string) {
 		log.Printf("Actual pid is %d", syscall.Getpid())
